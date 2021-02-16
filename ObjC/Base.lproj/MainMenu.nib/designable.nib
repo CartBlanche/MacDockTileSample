@@ -291,6 +291,7 @@
                         </buttonCell>
                         <connections>
                             <action selector="resetHighScore:" target="292" id="310"/>
+                            <binding destination="307" name="argument" keyPath="values" id="1kf-6G-vXs"/>
                         </connections>
                     </button>
                     <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="302">

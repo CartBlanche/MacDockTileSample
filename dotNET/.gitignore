@@ -1,0 +1,8 @@
+bin
+obj
+*.DotSettings
+/build/.nuget/
+/out
+.vs
+packages
+.DS_Store
