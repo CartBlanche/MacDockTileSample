@@ -1,5 +1,5 @@
 /*
-     File: DockTileAppDelegate.m
+	 File: DockTileAppDelegate.m
  Abstract: DockTile is a "game" which demonstrates the use of NSDockTile, and more importantly, the NSDockTilePlugIn protocol introduced in 10.6.
  
  The game is terribly simple: Your score goes up by 1 just by launching the app! So keep on launching the app over and over to reach new high scores.
@@ -9,7 +9,8 @@
  The whole game is implemented in the DockTileAppDelegate class, which is the delegate of the application. On applicationDidFinishLaunching: it updates the highScore. The only other thing it does is to implement resetHighScore: to set it back to 0.
  
  The dock tile plug-in is useful as a way to show off your high score even when the app is not running. The plug-in simply reads the high score from defaults, displays it as a badge on the dock tile, then updates it on receipt of a distributed notification that indicates when the high score changed.
-  Version: 1.1
+
+  Version: 1.2
  
  Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple
  Inc. ("Apple") in consideration of your agreement to the following
@@ -53,65 +54,93 @@
  
 */
 
-#include "DockTileAppDelegate.h"
+#import "DockTileAppDelegate.h"
+#import "SharedDockItem.h"
+
+// A convenience macro to make the "not" operator more visible:
+#define NOT !
 
 @implementation DockTileAppDelegate
+
+-(instancetype)init {
+	self = [super init];
+	if (self) {
+		//
+		// We want to update the dock icon as soon as possible, hence we do it here in the init method
+		//
+
+		// Determine the icon to show
+		NSString *dockIconName = [[NSUserDefaults standardUserDefaults] objectForKey:PrefsKeyDockIcon];
+		NSImage *icon = [NSBundle.mainBundle imageForResource:dockIconName];
+		if (dockIconName == nil || icon == nil) {
+			if (@available(macOS 11.0, *)) {
+				dockIconName = @"icon2.icns";	// let's default to using the alternative (squircle) icon on Big Sur and later
+			} else {
+				dockIconName = DEFAULT_ICON_NAME;
+			}
+			[[NSUserDefaults standardUserDefaults] setObject:dockIconName forKey:PrefsKeyDockIcon];
+			[NSDistributedNotificationCenter.defaultCenter postNotificationName:DockUpdateNotificationKey object:nil];
+			icon = [NSBundle.mainBundle imageForResource:dockIconName];
+		}
+
+		// Now change the icon in the Dock (this is the part that needs to be done ASAP)
+		if (NOT [dockIconName isEqualToString:@"icon.icns"]) {	// no need to change it if it's the default app icon
+			[NSApp setApplicationIconImage:icon];	// required on macOS 11 or the app icon won't update for a few seconds
+		}
+
+		// Finally, observe changes to the dock, e.g. when the user chose a different icon via our custom Dock Tile menu
+		[NSDistributedNotificationCenter.defaultCenter addObserverForName:DockUpdateNotificationKey object:nil queue:nil usingBlock:^(NSNotification *notification) {
+			NSString *dockIconName2 = [[NSUserDefaults standardUserDefaults] objectForKey:PrefsKeyDockIcon];
+			NSImage *icon2 = [NSBundle.mainBundle imageForResource:dockIconName2];
+			if (icon2) {
+				[NSApp setApplicationIconImage:icon2];
+			}
+		}];
+	}
+	return self;
+}
 
 /* highScore accessors. highScore is declared as a property, but we don't have an instance variable for it, and nor do we use synthesized accessors since we do special things.
 */
 - (NSInteger)highScore {
-    // We get the value from defaults (preferences), we don't keep a copy of the high score in the app.
-    return [[NSUserDefaults standardUserDefaults] integerForKey:@"HighScore"];
+	// We get the value from defaults (preferences), we don't keep a copy of the high score in the app.
+	return [[NSUserDefaults standardUserDefaults] integerForKey:PrefsKeyHighScore];
 }
 
 - (void)setHighScore:(NSInteger)newScore {
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    
-    // We just save the value out, we don't keep a copy of the high score in the app.
-    [defaults setInteger:newScore forKey:@"HighScore"];
+	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+	
+	// We just save the value out, we don't keep a copy of the high score in the app.
+	[defaults setInteger:newScore forKey:PrefsKeyHighScore];
 
-    // Save the value out to defaults now. We often don't explicit synchronize, since it's best to let the system take care of it automatically. However, in this case since we're asking the plug-in to update the score, synchronizing before the notification ensures that the plug-in sees the latest value. Always make sure the value is updated and synchronized before sending out the distributed notification to other processes.
-    [defaults synchronize];	
+	// Save the value out to defaults now. We often don't explicit synchronize, since it's best to let the system take care of it automatically. However, in this case since we're asking the plug-in to update the score, synchronizing before the notification ensures that the plug-in sees the latest value. Always make sure the value is updated and synchronized before sending out the distributed notification to other processes.
+	[defaults synchronize];	
 
-    // And post a notification so the plug-in sees the change.
-    [[NSDistributedNotificationCenter defaultCenter] postNotificationName:@"com.apple.DockTile.ObjC.HighScoreChanged" object:nil];
+	// And post a notification so the plug-in sees the change.
+	[[NSDistributedNotificationCenter defaultCenter] postNotificationName:DockUpdateNotificationKey object:nil];
 
-    // Now update the dock tile. Note that a more general way to do this would be to observe the highScore property, but we're just keeping things short and sweet here, trying to demo how to write a plug-in. 
+	// Now update the dock tile's badge.
+	// Note that a more general way to do this would be to observe the highScore property, but we're just keeping things short and sweet here, trying to demo how to write a plug-in. 
     [[[NSApplication sharedApplication] dockTile] setBadgeLabel:[NSString stringWithFormat:@"%ld", (long)newScore]];
 }
 
 /* On launch, get the previous score, increment by one, and save it. By definition all updated scores are high scores. 
 */
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
-    [self setHighScore:[self highScore] + 1];
+	[self setHighScore:[self highScore] + 1];
 }
 
 /* Reset the high score. Simple...
 */
 - (void)resetHighScore:(id)sender {
-    [self setHighScore:0];
+	[self setHighScore:0];
 }
 
-// This menu will ONLY appear when the app is running. We need NSDockPlugin for it to appear when the app isn't running.
-- (NSMenu *)applicationDockMenu:(NSApplication *)sender {
-    // Create the menu
-    if (dockMenu == nil)
-        dockMenu = [[NSMenu alloc] init];
-    else
-        [dockMenu removeAllItems];
-    
-    // Let's Find the HighScore
-     CFPreferencesAppSynchronize(CFSTR("com.apple.examples.DockTile.ObjC.App"));
-     NSInteger highScore = CFPreferencesGetAppIntegerValue(CFSTR("HighScore"), CFSTR("com.apple.examples.DockTile.ObjC.App"), NULL);
-     
-     // Convert it into a string
-     NSString *highScoreAsString = [NSString stringWithFormat:@"%ld", (long)highScore];
-     NSMenuItem *highScoreMenu = [[NSMenuItem alloc] initWithTitle:highScoreAsString action:NULL keyEquivalent:@""];
-    
-     [dockMenu addItem: highScoreMenu];
-     [highScoreMenu release];
-    
-    return dockMenu;
+/* This menu will ONLY appear when the app is running. We need NSDockPlugin for it to appear when the app isn't running.
+*/
+- (NSMenu *)applicationDockMenu:(NSApplication *)sender
+{
+	return [SharedDockItem dockMenuForPrefs:[NSUserDefaults standardUserDefaults] bundle:[NSBundle mainBundle]];
 }
 
 @end

@@ -16,10 +16,12 @@
 	<string>${PRODUCT_NAME}</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.2</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>1.0</string>
+	<string>3</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>10.6</string>
 	<key>NSDockTilePlugIn</key>
@@ -28,5 +30,20 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>DockIconsToChooseFrom</key>
+	<array>
+		<dict>
+			<key>title</key>
+			<string>Classic Icon</string>
+			<key>file name</key>
+			<string>icon.icns</string>
+		</dict>
+		<dict>
+			<key>title</key>
+			<string>Squircle Icon</string>
+			<key>file name</key>
+			<string>icon2.icns</string>
+		</dict>
+	</array>
 </dict>
 </plist>
