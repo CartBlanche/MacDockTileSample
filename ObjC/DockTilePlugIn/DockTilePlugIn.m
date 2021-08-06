@@ -1,5 +1,6 @@
 /*
-     File: DockTilePlugIn.m
+ File: DockTilePlugIn.m
+
  Abstract: DockTile is a "game" which demonstrates the use of NSDockTile, and more importantly, the NSDockTilePlugIn protocol introduced in 10.6.
  
  The game is terribly simple: Your score goes up by 1 just by launching the app! So keep on launching the app over and over to reach new high scores.
@@ -9,7 +10,8 @@
  When the plug-in is loaded, an instance of DockTilePlugIn is instantiated, and setDockTile: called with an instance of NSDockTile.  The implementation of setDockTile: in DockTilePlugIn sets the plug-in as an observer of high score changes (using NSDistributedNotification), causing the badge on the dock tile to update everytime the score is updated. 
  
  The NSDistributedNotificationCenter registry happens with the 10.6 method addObserverForName:object:queue:block:. The body of the block has no references to the DockTilePlugIn instance, which means the notification does not cause it to be retained. In this case that does not matter (since setDockTile:nil is called, which removes the observer), but in some cases this is important to watch for.
-  Version: 1.1
+
+ Version: 1.2
  
  Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple
  Inc. ("Apple") in consideration of your agreement to the following
@@ -50,66 +52,88 @@
  POSSIBILITY OF SUCH DAMAGE.
  
  Copyright (C) 2011 Apple Inc. All Rights Reserved.
- 
+
 */
 
-#include "DockTilePlugIn.h"
+#import "DockTilePlugIn.h"
+#import "SharedDockItem.h"
 
 @implementation DockTilePlugIn
 
-@synthesize highScoreObserver;
+- (void) updateDockTile:(NSDockTile*)dockTile
+{
+	[self.mainPrefs synchronize];
 
-/* To update the score, we first make sure we are looking at the latest state of the defaults database, then we fetch the score and set it as the badge label.
-*/
-static void updateScore(NSDockTile *tile) {
-    CFPreferencesAppSynchronize(CFSTR("com.apple.examples.DockTile.ObjC.App"));
-    NSInteger highScore = CFPreferencesGetAppIntegerValue(CFSTR("HighScore"), CFSTR("com.apple.examples.DockTile.ObjC.App"), NULL);
-    [tile setBadgeLabel:[NSString stringWithFormat:@"%ld", (long)highScore]];
+	// update icon
+	NSString *iconName = [self.mainPrefs objectForKey:PrefsKeyDockIcon];
+	if ([iconName isEqualToString:self.currentIconName]) {
+		// no change necessary
+	} else {
+		self.currentIconName = iconName;
+		NSImage *icon = [self.mainBundle imageForResource:iconName];
+		if (icon.isValid) {
+			NSView *view = [NSView.alloc initWithFrame:NSMakeRect(0, 0, dockTile.size.width, dockTile.size.height)];
+			NSImageView *iconView = [NSImageView.alloc initWithFrame:view.frame];
+			iconView.image = icon;
+			iconView.imageScaling = NSImageScaleProportionallyDown;
+			[iconView setFrameSize:dockTile.size];
+			[view addSubview:iconView];
+			[dockTile setContentView:view];
+			[dockTile display];
+		}
+	}
+	
+	// update badge
+	NSInteger highScore = [self.mainPrefs integerForKey:PrefsKeyHighScore];
+	[dockTile setBadgeLabel:[NSString stringWithFormat:@"%ld", (long)highScore]];
 }
 
-- (void)setDockTile:(NSDockTile *)dockTile {
-    if (dockTile) {
-        // Attach an observer that will update the high score in the dock tile whenever it changes
-        self.highScoreObserver = [[NSDistributedNotificationCenter defaultCenter] addObserverForName:@"com.apple.DockTile.ObjC.HighScoreChanged" object:nil queue:nil usingBlock:^(NSNotification *notification) {
-	    updateScore(dockTile);	// Note that this block captures (and retains) dockTile for use later. Also note that it does not capture self, which means -dealloc may be called even while the notification is active. Although it's not clear this needs to be supported, this does eliminate a potential source of leaks.
-        }];
-        updateScore(dockTile);	// Make sure score is updated from the get-go as well
-    } else {
-        // Strictly speaking this may not be necessary (since the plug-in may be terminated when it's removed from the dock), but it's good practice
-        [[NSDistributedNotificationCenter defaultCenter] removeObserver:self.highScoreObserver];
-        self.highScoreObserver = nil;
-    }
+- (void) setDockTile:(NSDockTile *)dockTile
+{
+	// Determine the app bundle that includes this plugin inside its "Contents/PlugIn" folder
+	if (dockTile != nil && (self.mainBundle == nil || self.mainPrefs == nil)) {
+		NSBundle *bundle = [NSBundle bundleForClass:DockTilePlugIn.class];
+		bundle = [NSBundle bundleWithURL:bundle.bundleURL.URLByDeletingLastPathComponent.URLByDeletingLastPathComponent.URLByDeletingLastPathComponent];
+		NSString *prefsID = [bundle objectForInfoDictionaryKey:@"CFBundleIdentifier"];
+		if (prefsID.length == 0 || bundle == nil) {
+			NSLog(@"%s: Can't determine app bundle ID", __func__);
+			return;
+		}
+		NSUserDefaults *prefs = [NSUserDefaults.alloc initWithSuiteName:prefsID];
+		if (prefs == nil) {
+			NSLog(@"%s: Can't get app prefs for %@", __func__, prefsID);
+			return;
+		}
+		self.mainBundle = bundle;
+		self.mainPrefs = prefs;
+	}
+
+	if (dockTile) {
+		if (self.updateObserver == nil) {
+			// Attach an observer that will update the high score or icon in the dock tile whenever it changes
+			self.updateObserver = [NSDistributedNotificationCenter.defaultCenter addObserverForName:DockUpdateNotificationKey object:nil queue:nil usingBlock:^(NSNotification *notification) {
+				[self updateDockTile:dockTile];
+			}];
+		}
+		[self updateDockTile:dockTile];
+	} else if (self.updateObserver) {
+		// clean up observer
+		[[NSDistributedNotificationCenter defaultCenter] removeObserver:self.updateObserver];
+		self.updateObserver = nil;
+	}
 }
 
-- (NSMenu *)dockMenu {
-    
-    // Create the menu
-    if (dockMenu == nil)
-        dockMenu = [[NSMenu alloc] init];
-    else
-        [dockMenu removeAllItems];
-    
-    // Let's Find the HighScore
-    CFPreferencesAppSynchronize(CFSTR("com.apple.examples.DockTile.ObjC.App"));
-    NSInteger highScore = CFPreferencesGetAppIntegerValue(CFSTR("HighScore"), CFSTR("com.apple.examples.DockTile.ObjC.App"), NULL);
-    
-    // Convert it into a string
-    NSString *highScoreAsString = [NSString stringWithFormat:@"%ld", (long)highScore];
-    NSMenuItem *highScoreMenu = [[NSMenuItem alloc] initWithTitle:highScoreAsString action:NULL keyEquivalent:@""];
-   
-    [dockMenu addItem: highScoreMenu];
-    [highScoreMenu release];
-    
-    return dockMenu;
+- (NSMenu*) dockMenu {	// gets ONLY called when app is not running and icon is in the Dock (see: `applicationDockMenu:`)
+	// Let the user choose an icon via the dock menu (#826)
+	return [SharedDockItem dockMenuForPrefs:self.mainPrefs bundle:self.mainBundle];
 }
 
-- (void)dealloc {
-    if (self.highScoreObserver) {
-	[[NSDistributedNotificationCenter defaultCenter] removeObserver:self.highScoreObserver];
-	self.highScoreObserver = nil;
-    }
-    [dockMenu release];
-    [super dealloc];
+
+- (void) dealloc {
+	if (self.updateObserver) {
+		[[NSDistributedNotificationCenter defaultCenter] removeObserver:self.updateObserver];
+		self.updateObserver = nil;
+	}
 }
 
 @end

@@ -18,6 +18,9 @@
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
 		A42C411A26BD4A260055F67C /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A42C411926BD4A260055F67C /* Foundation.framework */; };
 		A42C411C26BD4A370055F67C /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A42C411B26BD4A370055F67C /* AppKit.framework */; };
+		A42C412326BD4F1D0055F67C /* icon2.icns in Resources */ = {isa = PBXBuildFile; fileRef = A42C412226BD4F1D0055F67C /* icon2.icns */; };
+		A42C412626BD4F5A0055F67C /* SharedDockItem.m in Sources */ = {isa = PBXBuildFile; fileRef = A42C412426BD4F5A0055F67C /* SharedDockItem.m */; };
+		A42C412726BD4F5A0055F67C /* SharedDockItem.m in Sources */ = {isa = PBXBuildFile; fileRef = A42C412426BD4F5A0055F67C /* SharedDockItem.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -64,6 +67,9 @@
 		9673544023A9035D00FD6C03 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		A42C411926BD4A260055F67C /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		A42C411B26BD4A370055F67C /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		A42C412226BD4F1D0055F67C /* icon2.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = icon2.icns; sourceTree = "<group>"; };
+		A42C412426BD4F5A0055F67C /* SharedDockItem.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = SharedDockItem.m; path = DockTilePlugIn/SharedDockItem.m; sourceTree = SOURCE_ROOT; };
+		A42C412526BD4F5A0055F67C /* SharedDockItem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SharedDockItem.h; path = DockTilePlugIn/SharedDockItem.h; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -118,10 +124,11 @@
 			children = (
 				41D5F1550FEE95CE004546AB /* README.rtf */,
 				29B97315FDCFA39411CA2CEA /* Sources */,
+				53D6795A0FD6EF91001688B3 /* DockTilePlugin */,
+				A42C411D26BD4EFB0055F67C /* Shared */,
 				29B97317FDCFA39411CA2CEA /* Resources */,
 				29B97323FDCFA39411CA2CEA /* Frameworks */,
 				19C28FACFE9D520D11CA2CBB /* Products */,
-				53D6795A0FD6EF91001688B3 /* DockTilePlugin */,
 			);
 			name = TrackIt;
 			sourceTree = "<group>";
@@ -141,6 +148,7 @@
 			isa = PBXGroup;
 			children = (
 				53FE44180FD71991007FBB65 /* icon.icns */,
+				A42C412226BD4F1D0055F67C /* icon2.icns */,
 				536F14110D33E1A200B2806D /* Credits.rtf */,
 				8D1107310486CEB800E47090 /* DockTile.ObjC-Info.plist */,
 				089C165CFE840E0CC02AAC07 /* InfoPlist.strings */,
@@ -168,6 +176,15 @@
 				53D67A650FD6F5B5001688B3 /* DockTilePlugIn.m */,
 			);
 			name = DockTilePlugin;
+			sourceTree = "<group>";
+		};
+		A42C411D26BD4EFB0055F67C /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				A42C412526BD4F5A0055F67C /* SharedDockItem.h */,
+				A42C412426BD4F5A0055F67C /* SharedDockItem.m */,
+			);
+			path = Shared;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -252,6 +269,7 @@
 				8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */,
 				536F14130D33E1A200B2806D /* Credits.rtf in Resources */,
 				53FE44190FD71991007FBB65 /* icon.icns in Resources */,
+				A42C412326BD4F1D0055F67C /* icon2.icns in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -262,6 +280,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A42C412726BD4F5A0055F67C /* SharedDockItem.m in Sources */,
 				53D67A8F0FD6F773001688B3 /* DockTilePlugIn.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -272,6 +291,7 @@
 			files = (
 				8D11072D0486CEB800E47090 /* main.m in Sources */,
 				53CC47720ABB251700F70973 /* DockTileAppDelegate.m in Sources */,
+				A42C412626BD4F5A0055F67C /* SharedDockItem.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

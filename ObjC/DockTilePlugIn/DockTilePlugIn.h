@@ -53,12 +53,15 @@
  
 */
 
-#include <Cocoa/Cocoa.h>
+#import <Cocoa/Cocoa.h>
 
-@interface DockTilePlugIn : NSObject <NSDockTilePlugIn> {
-    id highScoreObserver;
-    NSMenu *dockMenu;
-}
+@interface DockTilePlugIn : NSObject <NSDockTilePlugIn>
 
-@property(retain) id highScoreObserver;
+@property(strong) id updateObserver;
+@property(strong) NSBundle *mainBundle;
+@property(strong) NSUserDefaults *mainPrefs;
+@property(strong) NSString *currentIconName;
+
+- (NSMenu*)dockMenu;	// conforms to NSDockTilePlugIn protocol
+
 @end
