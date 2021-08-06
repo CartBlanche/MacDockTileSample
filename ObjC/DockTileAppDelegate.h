@@ -53,10 +53,11 @@
  
 */
 
-#include <Cocoa/Cocoa.h>
+#import <Cocoa/Cocoa.h>
 
 @interface DockTileAppDelegate : NSObject{
     NSMenu *dockMenu;
+    NSWindow *window;
 }
 
 @property NSInteger highScore;
